@@ -1,0 +1,18 @@
+# Python
+__pycache__/
+*.pyc
+*.egg-info/
+
+# Third-party reference code
+externals/
+
+# Data directory (symlinks, manifests, images — all machine-specific)
+data/
+
+# Editor/IDE
+.vscode/
+.idea/
+*.swp
+
+# Claude Code local settings
+.claude/
