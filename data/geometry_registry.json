@@ -1,0 +1,39 @@
+{
+  "version": "1.0",
+  "description": "Maps each experiment to its CrystFEL .geom file for detector assembly.",
+  "notes": "prjcwang31 excluded (needs separate geometry discovery). Run-range refinement can be added later.",
+  "experiments": {
+    "cxi101235425": {
+      "detector": "jungfrau_4m",
+      "geom_file": "/sdf/data/lcls/ds/cxi/cxi101235425/results/cheetah/calib/jungfrau4M.geom"
+    },
+    "cxil1005322": {
+      "detector": "jungfrau_4m",
+      "geom_file": "/sdf/data/lcls/ds/cxi/cxil1005322/results/cxil1005322/geometry/jungfrau4M.geom"
+    },
+    "cxil1015922": {
+      "detector": "jungfrau_4m",
+      "geom_file": "/sdf/data/lcls/ds/cxi/cxil1015922/results/qbertran/cheetah/calib/jungfrau4M.geom"
+    },
+    "cxilw5019": {
+      "detector": "jungfrau_4m",
+      "geom_file": "/sdf/data/lcls/ds/cxi/cxilw5019/results/cgati/cgati/marque5.geom"
+    },
+    "mfx100903824": {
+      "detector": "epix10k_2m",
+      "geom_file": "/sdf/data/lcls/ds/mfx/mfx100903824/calib/Epix10ka2M::CalibV1/MfxEndstation.0:Epix10ka2M.0/geometry/r0003.geom"
+    },
+    "mfx101211025": {
+      "detector": "jungfrau_16m",
+      "geom_file": "/sdf/data/lcls/ds/mfx/mfx101211025/results/Ctah2/cheetah/calib/jungfrau16M.geom"
+    },
+    "mfxp22421": {
+      "detector": "epix10k_2m",
+      "geom_file": "/sdf/data/lcls/ds/mfx/mfxp22421/results/tony/backup_except_cheetah/cheetah/cheetah/calib/epix10k2M.geom"
+    },
+    "mfxx49820": {
+      "detector": "epix10k_2m",
+      "geom_file": "/sdf/data/lcls/ds/mfx/mfxx49820/calib/Epix10ka2M::CalibV1/MfxEndstation.0:Epix10ka2M.0/geometry/r0008.geom"
+    }
+  }
+}
