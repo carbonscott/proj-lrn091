@@ -7,14 +7,34 @@ gaps (zeros).
 
 Same interface as PanelPatchDataset: same patch_size, transform, experiments
 params; same output tensor shape [1, H, W].
+
+Supports both naming conventions:
+  - Legacy: {experiment_id}.zarr
+  - peaknet10k: {experiment_id}_r{run}.{chunk}.zarr
 """
 
+import re
 from pathlib import Path
 
 import numpy as np
 import torch
 import zarr
 from torch.utils.data import Dataset
+
+
+def _extract_experiment_id(zarr_path):
+    """Extract experiment ID from a Zarr store filename.
+
+    Handles both naming conventions:
+      - Legacy: "cxi101235425.zarr" -> "cxi101235425"
+      - peaknet10k: "cxi101235425_r0106.0001.zarr" -> "cxi101235425"
+    """
+    stem = Path(zarr_path).stem  # removes .zarr
+    # Remove .NNNN chunk suffix if present (e.g. "cxi101235425_r0106.0001" -> "cxi101235425_r0106")
+    stem = re.sub(r'\.\d{4}$', '', stem)
+    # Remove _rNNNN run suffix if present
+    stem = re.sub(r'_r\d{4}$', '', stem)
+    return stem
 
 
 class AssembledPatchDataset(Dataset):
@@ -49,7 +69,8 @@ class AssembledPatchDataset(Dataset):
 
         if experiments is not None:
             exp_set = set(experiments)
-            zarr_paths = [p for p in zarr_paths if p.stem in exp_set]
+            zarr_paths = [p for p in zarr_paths
+                          if _extract_experiment_id(p) in exp_set]
 
         skipped = 0
         for zpath in zarr_paths:
