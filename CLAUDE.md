@@ -12,6 +12,8 @@ export XTAL_DATA_ORIGINAL=/sdf/data/lcls/ds/prj/prjdat21/results/cwang31/proj-lr
 export XTAL_DATA_ASSEMBLED=/sdf/data/lcls/ds/prj/prjdat21/results/cwang31/proj-lrn091/data/assembled
 export TILED_DIR=/sdf/data/lcls/ds/prj/prjcwang31/results/software/tiled
 export UV_CACHE_DIR=/sdf/data/lcls/ds/prj/prjdat21/scratch/cwang31/.UV_CACHE
+export DATA_BROKER_DIR=/sdf/data/lcls/ds/prj/prjdat21/results/cwang31/proj-lrn091/externals/data-broker/tiled-catalog-broker
+export DATA_BROKER_EXAMPLE_DIR=/sdf/data/lcls/ds/prj/prjmaiqmag01/results/data-source/cwang31-data-broker
 ```
 
 Use uv to run python programs. The UV_CACHE_DIR avoids repeated package downloads.
@@ -46,3 +48,7 @@ Caveat: Total number of CPUs differ by nodes.  Check resources after gaining
 access to a node.
 
 Once you gain access to any of the compute nodes, you can then submit jobs through `srun`.
+
+## Data Broker
+
+Path: `/sdf/data/lcls/ds/prj/prjdat21/results/cwang31/proj-lrn091/externals/data-broker/tiled-catalog-broker`
