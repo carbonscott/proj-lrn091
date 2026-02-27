@@ -29,7 +29,7 @@ from crystfel_stream_parser.cheetah_converter import CheetahConverter
 # ---------------------------------------------------------------------------
 # Paths
 # ---------------------------------------------------------------------------
-PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
 REGISTRY_PATH = PROJECT_ROOT / "data" / "geometry_registry.json"
 MANIFEST_PATH = PROJECT_ROOT / "data" / "manifest.json"
 OUTPUT_PATH = Path("/tmp/assembly_test.png")

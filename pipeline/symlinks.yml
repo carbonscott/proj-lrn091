@@ -1,0 +1,21 @@
+# Experiment symlinks: symlink_name: /absolute/source/path
+# Run: bash create_symlinks.sh --config symlinks.yml
+
+# --- MFX experiments ---
+mfx100845525--om-hdf5:          /sdf/data/lcls/ds/mfx/mfx100845525/results/tgrant/om/hdf5
+mfxx49820--lute-drcomp-f32:     /sdf/data/lcls/ds/mfx/mfxx49820/results/nclaret/lute_output/DrComp_f32/baseline
+mfx101211025--cheetah-hdf5:     /sdf/data/lcls/ds/mfx/mfx101211025/results/Ctah2/cheetah/hdf5
+mfx101211025--lute-tjump:       /sdf/data/lcls/ds/mfx/mfx101211025/results/tjump/lute_output
+mfxp22421--cheetah-hdf5:        /sdf/data/lcls/ds/mfx/mfxp22421/results/tony/backup_except_cheetah/cheetah/cheetah/hdf5
+mfx100903824--results-cxi:      /sdf/data/lcls/ds/mfx/mfx100903824/results
+
+# --- CXI experiments ---
+cxil1005322--cheetah-hdf5:      /sdf/data/lcls/ds/cxi/cxil1005322/results/tgrant/cheetah/hdf5
+cxil1005322--reborn-hdf5:       /sdf/data/lcls/ds/cxi/cxil1005322/results/cxil1005322/hdf5
+cxi101235425--cheetah-hdf5:     /sdf/data/lcls/ds/cxi/cxi101235425/results/cheetah/hdf5
+cxil1015922--cheetah-hdf5:      /sdf/data/lcls/ds/cxi/cxil1015922/results/qbertran/cheetah/hdf5
+cxilw5019--psocake:             /sdf/data/lcls/ds/cxi/cxilw5019/results/cgati/cgati/psocake
+
+# --- Project directories ---
+prjcwang31--userdata-psocake:   /sdf/data/lcls/ds/prj/prjcwang31/userdata
+prjcwang31--userdata-cheetah:   /sdf/data/lcls/ds/prj/prjcwang31/userdata/cheetah

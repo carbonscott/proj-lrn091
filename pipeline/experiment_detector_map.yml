@@ -1,0 +1,15 @@
+# Map experiment symlink name -> detector type
+# Used by build_manifest.py to validate HDF5 file shapes.
+#
+# Detector types (built-in): jungfrau_4m, epix10k_2m, jungfrau_16m, assembled
+
+cxi101235425--cheetah-hdf5:     jungfrau_4m
+cxil1005322--cheetah-hdf5:      jungfrau_4m
+cxil1015922--cheetah-hdf5:      jungfrau_4m
+cxilw5019--psocake:             jungfrau_4m
+mfx100903824--results-cxi:      epix10k_2m
+mfx101211025--cheetah-hdf5:     jungfrau_16m
+mfxp22421--cheetah-hdf5:        epix10k_2m
+mfxx49820--lute-drcomp-f32:     epix10k_2m
+prjcwang31--userdata-cheetah:   epix10k_2m
+prjcwang31--userdata-psocake:   assembled

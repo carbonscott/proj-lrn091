@@ -8,9 +8,13 @@ enabling the PyTorch DataLoader to efficiently index (file, frame, panel)
 triples without re-scanning the filesystem.
 
 Usage:
-    uv run --with h5py exploration/scripts/build_manifest.py
+    uv run --with h5py python build_manifest.py
+    uv run --with h5py python build_manifest.py --data-dir /path/to/data --output manifest.json
+    uv run --with h5py python build_manifest.py --detector-map experiment_detector_map.yml
+    uv run --with h5py python build_manifest.py --experiments cxilw5019--psocake,mfxp22421--cheetah-hdf5
 """
 
+import argparse
 import json
 import os
 import sys
@@ -18,10 +22,6 @@ from datetime import datetime
 from pathlib import Path
 
 import h5py
-
-PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
-DATA_DIR = PROJECT_ROOT / "data"
-MANIFEST_PATH = DATA_DIR / "manifest.json"
 
 IMAGE_KEY = "/entry_1/data_1/data"
 
@@ -54,10 +54,9 @@ DETECTOR_CONFIG = {
     },
 }
 
-# Map experiment symlink -> detector type
-# Derived from data exploration in scripts/02_explore_hdf5.py and
-# scripts/03_visualize_samples.py.
-EXPERIMENT_DETECTOR = {
+# Default experiment -> detector mapping.
+# Can be overridden with --detector-map flag pointing to a YAML file.
+_DEFAULT_EXPERIMENT_DETECTOR = {
     "cxi101235425--cheetah-hdf5": "jungfrau_4m",
     "cxil1005322--cheetah-hdf5": "jungfrau_4m",
     "cxil1015922--cheetah-hdf5": "jungfrau_4m",
@@ -69,6 +68,22 @@ EXPERIMENT_DETECTOR = {
     "prjcwang31--userdata-cheetah": "epix10k_2m",
     "prjcwang31--userdata-psocake": "assembled",
 }
+
+
+def load_detector_map(path):
+    """Load experiment->detector mapping from a simple YAML file (key: value per line)."""
+    mapping = {}
+    with open(path) as f:
+        for line in f:
+            line = line.strip()
+            if not line or line.startswith("#"):
+                continue
+            name, _, detector = line.partition(":")
+            name = name.strip()
+            detector = detector.strip()
+            if name and detector:
+                mapping[name] = detector
+    return mapping
 
 
 def find_hdf5_files(symlink_path):
@@ -140,14 +155,20 @@ def validate_detector(file_info, detector_name):
     return file_info["h"] == expected_h and file_info["w"] == expected_w
 
 
-def build_manifest():
-    """Build the full manifest by scanning all experiment symlinks."""
-    print("Building manifest...")
-    print(f"Data directory: {DATA_DIR}")
+def build_manifest(data_dir, experiment_detector, experiment_filter=None):
+    """Build the full manifest by scanning all experiment symlinks.
 
-    # Find experiment symlinks (same pattern as 02_explore_hdf5.py)
+    Args:
+        data_dir: Path to the data directory containing experiment symlinks.
+        experiment_detector: Dict mapping symlink names to detector types.
+        experiment_filter: Optional set of symlink names to process (None = all).
+    """
+    print("Building manifest...")
+    print(f"Data directory: {data_dir}")
+
+    # Find experiment symlinks
     symlinks = sorted([
-        p for p in DATA_DIR.iterdir()
+        p for p in data_dir.iterdir()
         if p.is_symlink() and "--" in p.name
     ])
 
@@ -161,11 +182,14 @@ def build_manifest():
     for sl in symlinks:
         symlink_name = sl.name
 
-        if symlink_name not in EXPERIMENT_DETECTOR:
-            print(f"  {symlink_name}: not in EXPERIMENT_DETECTOR, skipping.")
+        if experiment_filter and symlink_name not in experiment_filter:
             continue
 
-        detector = EXPERIMENT_DETECTOR[symlink_name]
+        if symlink_name not in experiment_detector:
+            print(f"  {symlink_name}: not in detector map, skipping.")
+            continue
+
+        detector = experiment_detector[symlink_name]
         experiment_id = symlink_name.split("--")[0]
 
         target = Path(os.readlink(sl))
@@ -193,7 +217,7 @@ def build_manifest():
 
             # Store path relative to DATA_DIR for portability
             try:
-                rel_path = str(fpath.relative_to(DATA_DIR.resolve()))
+                rel_path = str(fpath.relative_to(data_dir.resolve()))
             except ValueError:
                 # If file is outside DATA_DIR, use path relative to symlink
                 rel_path = f"{symlink_name}/{fpath.relative_to(target)}"
@@ -242,14 +266,54 @@ def build_manifest():
     return manifest
 
 
-def main():
-    manifest = build_manifest()
+def parse_args():
+    script_dir = Path(__file__).resolve().parent
+    default_data_dir = script_dir.parent / "data"
 
-    MANIFEST_PATH.parent.mkdir(parents=True, exist_ok=True)
-    with open(MANIFEST_PATH, "w") as f:
+    parser = argparse.ArgumentParser(
+        description="Build a JSON manifest of HDF5 data files for model training."
+    )
+    parser.add_argument(
+        "--data-dir", type=Path, default=default_data_dir,
+        help=f"Data directory containing experiment symlinks (default: {default_data_dir})",
+    )
+    parser.add_argument(
+        "--output", type=Path, default=None,
+        help="Output manifest path (default: <data-dir>/manifest.json)",
+    )
+    parser.add_argument(
+        "--detector-map", type=Path, default=None,
+        help="YAML file mapping symlink names to detector types (default: built-in mapping)",
+    )
+    parser.add_argument(
+        "--experiments", type=str, default=None,
+        help="Comma-separated list of experiment symlink names to process (default: all)",
+    )
+    return parser.parse_args()
+
+
+def main():
+    args = parse_args()
+
+    data_dir = args.data_dir.resolve()
+    output_path = args.output if args.output else data_dir / "manifest.json"
+
+    if args.detector_map:
+        experiment_detector = load_detector_map(args.detector_map)
+    else:
+        experiment_detector = _DEFAULT_EXPERIMENT_DETECTOR
+
+    experiment_filter = None
+    if args.experiments:
+        experiment_filter = set(args.experiments.split(","))
+
+    manifest = build_manifest(data_dir, experiment_detector, experiment_filter)
+
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    with open(output_path, "w") as f:
         json.dump(manifest, f, indent=2)
 
-    print(f"\nManifest written to: {MANIFEST_PATH}")
+    print(f"\nManifest written to: {output_path}")
     print(f"  Experiments: {manifest['summary']['num_experiments']}")
     print(f"  Files: {manifest['summary']['num_files']}")
     print(f"  Total frames: {manifest['summary']['total_frames']}")

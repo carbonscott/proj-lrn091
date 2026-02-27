@@ -18,7 +18,7 @@ import numpy as np
 import torch
 
 # Add exploration/ to path so we can import data_pipeline
-PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJECT_ROOT / "exploration"))
 
 from data_pipeline import create_dataloader, PanelPatchDataset, DiffractionTransform

@@ -56,7 +56,7 @@ from crystfel_stream_parser.cheetah_converter import CheetahConverter
 # ---------------------------------------------------------------------------
 # Paths
 # ---------------------------------------------------------------------------
-PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
 REGISTRY_PATH = PROJECT_ROOT / "data" / "geometry_registry.json"
 MANIFEST_PATH = PROJECT_ROOT / "data" / "manifest.json"
 DEFAULT_OUTPUT_DIR = PROJECT_ROOT / "data" / "assembled"
@@ -287,7 +287,10 @@ def process_run(exp_id, run_number, run_files, image_key, converter,
         try:
             with h5py.File(str(fpath), "r") as f:
                 ds = f[image_key]
-                for i in range(num_frames):
+                indices = file_entry.get("frame_indices")
+                if indices is None:
+                    indices = range(num_frames)
+                for i in indices:
                     if ds.ndim == 3:
                         raw = np.array(ds[i], dtype=np.float32)
                     else:
@@ -492,13 +495,22 @@ def main():
         help="Number of Ray workers for parallel run processing "
              "(default: all CPUs; 1 = sequential, no Ray)"
     )
+    parser.add_argument(
+        "--manifest", type=str, default=None,
+        help="Path to curated manifest JSON. When provided, only files/frames "
+             "listed in this manifest are assembled. Files with 'frame_indices' "
+             "assemble only those indices; others assemble all frames."
+    )
     args = parser.parse_args()
 
     output_dir = Path(args.output_dir) if args.output_dir else DEFAULT_OUTPUT_DIR
     output_dir.mkdir(parents=True, exist_ok=True)
 
     registry = json.loads(REGISTRY_PATH.read_text())
-    manifest = json.loads(MANIFEST_PATH.read_text())
+    if args.manifest:
+        manifest = json.loads(Path(args.manifest).read_text())
+    else:
+        manifest = json.loads(MANIFEST_PATH.read_text())
 
     experiment_ids = args.experiments or list(registry["experiments"].keys())
 
@@ -512,7 +524,9 @@ def main():
             None,
         )
         if exp_manifest:
-            total_frames += sum(f["num_frames"] for f in exp_manifest["files"])
+            for f in exp_manifest["files"]:
+                total_frames += f.get("num_selected", len(f["frame_indices"])) \
+                    if "frame_indices" in f else f["num_frames"]
 
     # Use a rough assembled size (2000x2000 average) for the estimate
     est_bytes = total_frames * 2000 * 2000 * bytes_per_pixel
