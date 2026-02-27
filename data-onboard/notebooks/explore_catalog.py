@@ -37,14 +37,15 @@ def cell_title():
 
         ```bash
         cd data/broker
-        uv run --with 'tiled[server]' tiled serve config config.yml --api-key secret
+        PYTHONPATH=../../broker uv run --with 'tiled[server]' \\
+            tiled serve config ../../broker/config.yml --api-key secret
         ```
 
         Then run this notebook:
 
         ```bash
         uv run --with marimo --with 'tiled[client]' --with pandas --with numpy \\
-            --with zarr --with matplotlib marimo run scripts/explore_catalog.py
+            --with zarr --with matplotlib marimo run data-onboard/notebooks/explore_catalog.py
         ```
         """
     )

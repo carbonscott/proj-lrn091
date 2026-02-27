@@ -6,7 +6,7 @@ trees:
   - path: /
     tree: catalog
     args:
-      uri: "sqlite:///catalog.db"
+      uri: "sqlite:////sdf/data/lcls/ds/prj/prjdat21/results/cwang31/proj-lrn091/data/broker/catalog.db"
       init_if_not_exists: true
       writable_storage: "storage"
       adapters_by_mimetype:
