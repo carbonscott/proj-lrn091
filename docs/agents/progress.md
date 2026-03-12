@@ -49,10 +49,18 @@ already transferred to `/lustre/orion/lrn091/proj-shared/data/`.
    - Tiled server: correct 4-layer hierarchy (root → dataset → frame → image),
      correct float32 dtype, data retrieval works.
 
+9. **Installed Ray** into `.venv-broker/` for parallel manifest generation.
+
+10. **Switched to Ray-parallel manifest generation** — initial sequential run
+    (`--num-workers 1`) completed only 1 small run in ~25 min. Killed it and
+    re-launched with `--num-workers 0` (Ray auto, ~56 cores) on compute node
+    `frontier10430` (job 4204437, extended partition, debug QOS).
+
 ### In Progress
 
-- **Full manifest generation** for all 30 runs (~440K frames) running on
-  compute node `frontier10430` (job 4204437, extended partition, debug QOS).
+- **Ray-parallel manifest generation** for all 30 runs (~440K frames) on
+  compute node `frontier10430` (job 4204437). Using Ray with auto-detected
+  CPU count (~56 cores) instead of sequential processing.
 - Once manifests are done: full catalog ingestion and server verification.
 
 ### Data Layout Decision
