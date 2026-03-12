@@ -30,7 +30,10 @@ from pathlib import Path
 import pandas as pd
 
 # Add the broker code to the Python path
-BROKER_DIR = Path(__file__).resolve().parent.parent / "externals" / "data-broker" / "tiled-catalog-broker" / "tiled_poc"
+BROKER_DIR = Path(os.environ.get(
+    "LCLS_DATA_BROKER_DIR",
+    "/lustre/orion/lrn091/proj-shared/cwang31/deps/lcls-data-broker"
+)) / "tiled_poc"
 sys.path.insert(0, str(BROKER_DIR))
 
 PROJECT_DIR = Path(__file__).resolve().parent.parent
@@ -103,10 +106,11 @@ def main():
         if args.catalog_db.exists():
             args.catalog_db.unlink()
 
-        readable_storage = [
-            str(PROJECT_DIR / "data" / "assembled"),
-            str(PROJECT_DIR / "data" / "peaknet10k"),
-        ]
+        DATA_DIR = Path(os.environ.get(
+            "XTAL_DATA_ASSEMBLED",
+            "/lustre/orion/lrn091/proj-shared/data"
+        ))
+        readable_storage = [str(DATA_DIR)]
 
         catalog_from_uri(
             f"sqlite:///{args.catalog_db}",
@@ -150,11 +154,13 @@ def main():
             ent_df, art_df, max_entities=len(ent_df), base_dir=base_dir
         )
 
-        # Bulk register
+        # Bulk register (Zarr stores are directories with application/x-zarr mimetype)
         bulk_register(
             engine, ent_nodes, art_nodes, art_data_sources,
             dataset_key=dataset_key,
             dataset_metadata=dataset_metadata,
+            mimetype="application/x-zarr",
+            is_directory=1,
         )
 
         total_entities += len(ent_df)

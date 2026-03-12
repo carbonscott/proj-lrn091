@@ -6,11 +6,10 @@ trees:
   - path: /
     tree: catalog
     args:
-      uri: "sqlite:////sdf/data/lcls/ds/prj/prjdat21/results/cwang31/proj-lrn091/data/broker/catalog.db"
+      uri: "sqlite:///catalog.db"
       init_if_not_exists: true
       writable_storage: "storage"
       adapters_by_mimetype:
         application/x-zarr: sfx_zarr_adapter:SFXZarrAdapter
       readable_storage:
-        - /sdf/data/lcls/ds/prj/prjdat21/results/cwang31/proj-lrn091/data/assembled
-        - /sdf/data/lcls/ds/prj/prjdat21/results/cwang31/proj-lrn091/data/peaknet10k
+        - /lustre/orion/lrn091/proj-shared/data

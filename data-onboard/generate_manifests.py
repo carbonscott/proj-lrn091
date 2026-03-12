@@ -253,11 +253,8 @@ def process_run(run_key, run_info):
         "num_chunks": len(chunks),
     }
 
-    # Determine base_dir for this run
-    if source == "assembled":
-        run_metadata["base_dir"] = str(ASSEMBLED_DIR)
-    else:
-        run_metadata["base_dir"] = str(PEAKNET_DIR)
+    # Determine base_dir from actual chunk location (respects CLI overrides)
+    run_metadata["base_dir"] = str(chunks[0].parent)
 
     fps = total_frames / elapsed if elapsed > 0 else 0
     print(f"  {run_key}: {total_frames} frames, {len(chunks)} chunks, "

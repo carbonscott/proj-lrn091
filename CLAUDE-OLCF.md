@@ -12,6 +12,7 @@ export XTAL_DATA_ASSEMBLED=/lustre/orion/lrn091/proj-shared/data
 export TILED_DIR=/lustre/orion/lrn091/proj-shared/cwang31/deps/tiled
 export UV_CACHE_DIR=/lustre/orion/lrn091/proj-shared/cwang31/.UV_CACHE
 export DATA_BROKER_DIR=/lustre/orion/lrn091/proj-shared/cwang31/deps/tiled-catalog-broker
+export LCLS_DATA_BROKER_DIR=/lustre/orion/lrn091/proj-shared/cwang31/deps/lcls-data-broker
 export DATA_BROKER_EXAMPLE_DIR=/lustre/orion/lrn091/proj-shared/cwang31/deps/MAIQMag-data-broker-examples
 ```
 
@@ -44,4 +45,11 @@ need `srun`. Do NOT launch parallel or threaded tasks from login nodes.
 
 ## Data Broker
 
-Path: `/lustre/orion/lrn091/proj-shared/cwang31/deps/tiled-catalog-broker`
+- Original (MAIQMag): `/lustre/orion/lrn091/proj-shared/cwang31/deps/tiled-catalog-broker`
+- LCLS/SFX fork (with Zarr v3 support): `/lustre/orion/lrn091/proj-shared/cwang31/deps/lcls-data-broker`
+
+## Progress Documentation
+
+Update `docs/agents/progress.md` only when the user explicitly asks to
+"document our progress". This file is git-tracked and serves as a running
+log of work done by agents.
