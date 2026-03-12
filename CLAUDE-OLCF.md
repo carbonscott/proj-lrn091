@@ -48,8 +48,9 @@ need `srun`. Do NOT launch parallel or threaded tasks from login nodes.
 - Original (MAIQMag): `/lustre/orion/lrn091/proj-shared/cwang31/deps/tiled-catalog-broker`
 - LCLS/SFX fork (with Zarr v3 support): `/lustre/orion/lrn091/proj-shared/cwang31/deps/lcls-data-broker`
 
-## Progress Documentation
+## Agent Documentation
 
-Update `docs/agents/progress.md` only when the user explicitly asks to
-"document our progress". This file is git-tracked and serves as a running
-log of work done by agents.
+- `docs/agents/progress.md` — Running log of work done by agents. Update only
+  when the user explicitly asks to "document our progress". Git-tracked.
+- `docs/agents/notes.md` — Technical notes, caveats, and improvement ideas
+  discovered during agent work. Git-tracked.
