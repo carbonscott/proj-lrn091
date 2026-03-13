@@ -58,10 +58,7 @@ already transferred to `/lustre/orion/lrn091/proj-shared/data/`.
 
 ### In Progress
 
-- **Ray-parallel manifest generation** for all 30 runs (~440K frames) on
-  compute node `frontier10430` (job 4204437). Using Ray with auto-detected
-  CPU count (~56 cores) instead of sequential processing.
-- Once manifests are done: full catalog ingestion and server verification.
+- Server verification with Tiled client against the full catalog.
 
 ### Data Layout Decision
 
@@ -79,3 +76,49 @@ directory.
   user-held allocation.
 - For small 1-node jobs on Frontier: `extended -q debug` provides up to 2h
   walltime with higher scheduling priority than plain `batch`.
+
+## 2026-03-13: Manifest Generation, Catalog Ingestion, Broker Cleanup & Tests
+
+### Context
+
+Completed the full data onboarding pipeline: manifest generation for all 30
+assembled runs, catalog ingestion, broker codebase cleanup, and added a test
+suite with CI.
+
+### Completed
+
+1. **Ray-parallel manifest generation finished** — All 30 assembled runs
+   processed on compute node `frontier10430` (job 4204437, extended partition).
+   Produced 30 entity + 30 artifact Parquet manifests and 30 dataset YAML
+   configs under `data/broker/manifests/` and `data/broker/datasets/`.
+
+2. **Full catalog ingestion** — All 30 runs bulk-registered into
+   `data/broker/catalog.db` (235 MB) via `bulk_register` with Zarr mimetype
+   and `is_directory=1`.
+
+3. **Split manifest generators** — Replaced the single `generate_manifests.py`
+   with two separate scripts (`generate_manifests_assembled.py` and
+   `generate_manifests_peaknet.py`) in `data-onboard/`. Both support
+   Ray-parallel processing and produce per-run Parquet + YAML outputs.
+
+4. **lcls-data-broker cleanup** (commits `ceeeb41`→`0ecb242`):
+   - Removed upstream VDP/MAIQMag leftovers: `docs/`, `examples/`, `demo/`,
+     `extra/`, old `tests/` directories
+   - Deleted `query_manifest.py` (MAIQMag-specific, imported non-existent fn)
+   - Removed manifest generation from broker scope — manifests are the data
+     provider's responsibility, not the broker's
+
+5. **Added test suite & CI** (commit `88318c4` in lcls-data-broker):
+   - 21 pytest tests across 3 modules (`test_utils`, `test_config`,
+     `test_bulk_register`) using synthetic Zarr fixtures (no real data needed)
+   - Full round-trip test: `init_database` → `prepare_node_data` →
+     `bulk_register` → SQL verification
+   - GitHub Actions CI on Python 3.11/3.12 with uv, triggered on push/PR
+     to main
+
+### Key Learnings
+
+- Tiled's `init_database` creates a hidden root node (id=0) automatically.
+  Node count assertions must account for this extra node.
+- The `_load_artifact_info` cache in `utils.py` uses a mutable default arg.
+  Tests must clear it between runs to avoid cross-test interference.
