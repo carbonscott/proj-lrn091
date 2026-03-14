@@ -122,3 +122,35 @@ suite with CI.
   Node count assertions must account for this extra node.
 - The `_load_artifact_info` cache in `utils.py` uses a mutable default arg.
   Tests must clear it between runs to avoid cross-test interference.
+
+## 2026-03-13: Egress Showcase Marimo Notebook
+
+### Context
+
+Created a marimo notebook to showcase the data broker's egress capabilities —
+demonstrating the different ways users can retrieve data from the Tiled catalog.
+
+### Completed
+
+1. **Created `notebooks/demo_egress.py`** — 8-section marimo notebook covering:
+   catalog overview, full frame retrieval (Mode B), sliced/ROI reads, direct
+   Zarr access (Mode A), data equivalence check, query-driven fetch by frame
+   statistics, multi-artifact (image + label), and cross-run uniform access.
+
+2. **Fixed rendering issues** — marimo cells using `mo.md()` inside `if/else`
+   blocks don't display output (not a top-level expression). Converted all
+   guard checks to `mo.stop()` for idiomatic marimo early-exit with output.
+
+3. **Added shape-mismatch resilience** — Some `mfxl*` runs have stale catalog
+   metadata (expected_shape 2203x2299 vs actual 1920x1920). Added try/except
+   around `.read()` calls in multi-artifact and cross-run cells.
+
+### Key Learnings
+
+- In marimo, `mo.md()` must be a **top-level expression** to display as cell
+  output. Inside `if/else` blocks it's discarded. Use `mo.stop(condition, output)`
+  for guard patterns.
+- PEP 723 script headers only work with `uv run --script`. Running
+  `uv run --with marimo marimo edit` ignores the header deps.
+- `fowld` (from the `fowl` package) is the non-TUI alternative for port
+  forwarding on systems without curses support.
