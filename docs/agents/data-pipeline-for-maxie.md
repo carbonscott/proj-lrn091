@@ -92,6 +92,15 @@ __getitem__(idx) -> _fetch_image(original_idx)
     |-- Returns (C, H, W)
 ```
 
+**Assessment:** `DistributedZarrDataset` already handles most of what MAXIE
+needs for Frontier training: Parquet manifest ingestion, cumulative size
+indexing, global shuffle with reproducible seeding, LRU Zarr store cache
+(default 100 stores), single-image returns `(C, H, W)`, and
+`DistributedSampler` integration. The primary gap is **where the Parquet
+manifest comes from** -- currently generated offline. With broker integration
+(see Section 2.5), manifests become query-driven, enabling data-centric
+experimentation without manual manifest regeneration.
+
 ### 1.4 Transforms pipeline
 
 Defined in `$MAXIE_DIR/maxie/tensor_transforms.py`:
@@ -240,8 +249,82 @@ Two data broker implementations manage metadata and provide catalog access:
 - Dynamic dtype detection (reads from data files)
 - Bulk ingest: `python ingest.py --mimetype application/x-zarr --is-directory datasets/*.yaml`
 
-The broker enables Mode A access (query for file paths, load directly) which is
-the pattern `DistributedZarrDataset` uses via Parquet manifests.
+**The broker's real value for ML training is data curation, not just serving.**
+The broker catalogs 104K+ frames across 30 runs with per-frame queryable
+metadata: `max_intensity`, `mean_intensity`, `std_intensity`, `fraction_zero`,
+and `npeaks`. Server-side query filtering via Tiled's `Key` API enables
+data-centric experimentation:
+
+```python
+from tiled.client import from_uri
+from tiled.queries import Key
+
+client = from_uri("http://localhost:8007", api_key="secret")
+run = client["cxil1015922_r0040"]
+
+# Filter by frame quality -- server-side, no data transfer
+bright = run.search(Key("max_intensity") > 1000)           # High-signal frames
+non_empty = run.search(Key("fraction_zero") < 0.5)         # Exclude mostly-dark frames
+peaked = run.search(Key("npeaks") > 5)                     # Frames with Bragg peaks
+```
+
+This means you can train on "only bright frames" or "only frames with peaks"
+without regenerating manifests or touching the raw data. Different queries
+produce different training sets, enabling systematic exploration of how data
+composition affects learned representations.
+
+**Mode A (recommended for Frontier):** Use the broker for discovery and
+filtering (a few HTTP calls), then load arrays directly from Zarr on Lustre
+for maximum throughput (~1-2 ms per frame vs ~200 ms via HTTP).
+
+### 2.5 Query → Locators → Manifest pipeline
+
+The missing piece between broker queries and `DistributedZarrDataset` is a
+pipeline that converts broker query results into a Parquet manifest the dataset
+class can consume.
+
+**Locator structure:** Each entity's metadata contains locator fields that map
+to physical Zarr file locations:
+
+```
+path_image       = "cxil1015922_r0040.0000.zarr"    # Relative to base_dir
+dataset_image    = "images"                           # Array name inside Zarr
+index_image      = 0                                  # Frame index in batched array
+```
+
+Dataset-level metadata provides `base_dir` (e.g.,
+`/lustre/orion/lrn091/proj-shared/data`). The absolute Zarr path is
+`base_dir / path_image`.
+
+**Pipeline steps:**
+
+```
+1. Query broker with criteria (server-side filtering)
+   client[run].search(Key("max_intensity") > threshold)
+       |
+2. Iterate matching entity keys, extract locator metadata
+   for key in filtered.keys():
+       meta = dict(filtered[key].metadata)
+       locators.append(meta["path_image"], meta["dataset_image"], meta["index_image"])
+       |
+3. Resolve absolute paths, save as Parquet manifest
+   Save to: experiments/<experiment_name>/locators.parquet
+       |
+4. Feed manifest into DistributedZarrDataset (or similar)
+   No broker dependency at training runtime
+```
+
+**Provenance:** The saved manifest is a record of exactly which frames
+(selected by which criteria) went into a training run. This is critical for
+reproducibility -- you can always trace a model back to its data selection.
+
+**Performance note:** Tiled has no bulk metadata export. Must iterate entity
+keys one-by-one after server-side filtering. For filtered subsets (e.g., 5K
+bright frames out of 104K total), this takes seconds. For the full catalog,
+it could take minutes -- but you only do it once and cache the result.
+
+The manifest is reusable: query once, train many times. Re-query with
+different criteria for different experiments.
 
 ---
 
@@ -532,6 +615,16 @@ frames per segment before synchronization. This is very fine-grained. Consider
 increasing `seg_size` to 100-500 for Frontier to reduce segment switching
 overhead.
 
+**Do we need segmentation for Zarr-on-Lustre?** Segmented loading was designed
+for the IPC/psana streaming path where data arrives over sockets and must be
+buffered in segments. For direct Zarr reads on Lustre with LRU caching, a
+standard `DistributedSampler` over the full dataset may suffice -- all frames
+are already addressable on disk, and the Zarr cache handles open file handles.
+Segmentation adds complexity (segment switching, sampler recreation per
+segment, `set_epoch` calls) without clear benefit when the data is already
+local. Worth benchmarking: full-dataset sampler vs segmented for
+Zarr-on-Lustre throughput.
+
 ### 6.5 Lustre I/O optimization
 
 **Stripe count:** Zarr stores with per-frame chunks (~10 MB compressed) should
@@ -582,6 +675,12 @@ Options:
    levels (e.g., 10-15) could reduce size by 30-50%, potentially fitting on NVMe.
 3. **Subset for scaling studies** -- for early experiments with fewer frames,
    NVMe is viable and dramatically faster.
+4. **Broker-driven filtering** -- with query-driven data selection (Section
+   2.5), the training subset may fit on NVMe even though the full dataset
+   doesn't. Example: 20K bright frames (filtered by `max_intensity > 1000`)
+   x ~10 MB compressed = ~200 GB, well within the 480 GB NVMe capacity. This
+   makes the query → locators pipeline doubly valuable: better data curation
+   AND faster I/O via NVMe.
 
 See `research-loop-frontier-strategy.md` Section 2.1 for the full sbcast setup.
 
@@ -810,3 +909,44 @@ export DATA_BROKER_DIR=/lustre/orion/lrn091/proj-shared/cwang31/deps/tiled-catal
 | `research-loop-frontier-strategy.md` | Section 2.1 (sbcast/NVMe), Section 2.2 (srun launch), Section 3 (batch script) |
 | `ssl-candidates-for-maxie.md` | SSL method selection and their data requirements |
 | `research-loop-brainstorm.md` | Design space axes including data/preprocessing choices |
+
+---
+
+## 11. Experiment Repository Structure
+
+Experiment code is separated from the broker and library codebases:
+
+| Repository | Path | Role |
+|-----------|------|------|
+| **Experiment repo** | `/lustre/orion/lrn091/proj-shared/cwang31/research-lrn091/` | Dataset class, training scripts, configs, results |
+| **Data broker** | `proj-lrn091/broker/` | Discovery and filtering service (Tiled catalog) |
+| **MAXIE library** | `$MAXIE_DIR` | Model, transforms, training utilities (reference) |
+| **PeakNet library** | `$PEAKNET_DIR` | Supervised segmentation model (reference) |
+
+**Design principles:**
+
+- The experiment repo is **self-contained and portable** -- it doesn't depend
+  on external paths for Python imports. Anyone cloning it gets the full picture.
+- The broker is purely a **discovery/filtering service**. The experiment repo
+  is the consumer. At training time, there is no broker dependency -- the
+  dataset reads from a pre-generated Parquet manifest of locators.
+- The locator-fetching utility is lightweight (calls `tiled.client.from_uri()`
+  and reads entity metadata) and lives in the experiment repo.
+- MAXIE and PeakNet codebases are **references** for transforms, model
+  architecture, and training patterns. We rebuild what we need in the
+  experiment repo rather than importing from them directly.
+
+**Workflow:**
+
+```
+1. Query broker (login node, one-time per experiment)
+   python fetch_locators.py --filters "max_intensity__gt=1000" --runs "r0039,r0040"
+       |
+2. Save locators manifest
+   -> research-lrn091/experiments/<exp_name>/locators.parquet
+       |
+3. Train (compute nodes, no broker needed)
+   srun python train.py --manifest experiments/<exp_name>/locators.parquet
+       |
+4. Iterate: change query criteria -> new manifest -> new training run
+```
