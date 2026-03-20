@@ -14,6 +14,100 @@ rather than treating the system as a black box with scalar output.
 
 ---
 
+## Latent Research Questions (Phase 0 Findings, 2026-03-20)
+
+These are the deeper questions that sit beneath the experiment candidates below.
+They emerged from the Phase 0 data exploration (see `$RESEARCH_DIR/scripts/explore_data.py`)
+and from domain experience with MAE on diffraction images.
+
+### 1. The real question isn't "which SSL method" — it's how to learn from extreme sparsity
+
+Standard vision SSL (MAE, DINO, etc.) assumes roughly uniform information density
+across image patches. Diffraction images violate this:
+
+- **17% of pixels are dead** (detector panel gaps — hard zeros)
+- **~1-2% of pixels carry the high-signal structure** (rings, spots) at 3σ above mean
+- **Bragg peaks: 4-196 labeled pixels per 1920×1920 frame (~0.001%)** — the most
+  scientifically important features occupy a vanishing fraction of the image
+- **Dynamic range spans 3-4 orders of magnitude** (mean ~20, max ~58,000)
+
+With standard MAE (75% random masking of 16×16 patches), the model spends most of
+its capacity reconstructing background and panel gaps. The gradient signal from
+peak-containing patches is diluted. The fundamental research question is:
+**how do you make the SSL objective attend to the information-rich regions?**
+
+Possible approaches (each maps to a candidate below):
+- **Informed masking**: bias mask toward peak-containing patches (force reconstruction
+  of the hard parts)
+- **Loss weighting**: upweight reconstruction error in high-contrast regions
+- **Smaller patches**: 8×8 instead of 16×16 — more patches contain at least one peak pixel
+- **Different objectives entirely**: I-JEPA predicts representations not pixels (may
+  sidestep the pixel-sparsity problem); VQ-VAE quantizes (may learn to allocate codes
+  to rare but important patterns)
+
+### 2. Research-as-optimization under fixed compute budget
+
+With ~1.5M GPU-hours total, each experiment should maximize information gain about
+the next decision. The 20% early-research phase (~300K GPU-hours) is about building
+a **decision surface**: learning which axes of variation matter most before committing
+the remaining 80% to scaling.
+
+Concrete phasing:
+- **Phase 1 (300K GPU-hr)**: sweep SSL methods, loss variants, patch sizes on
+  `cxi101235425` (14,829 frames). Goal: rank the axes by impact.
+- **Phase 2 (200K GPU-hr)**: scaling laws on winning method — vary model size +
+  data size. Goal: find the compute-optimal point.
+- **Phase 3 (800K GPU-hr)**: full pre-training at scale with winning recipe.
+- **Phase 4 (200K GPU-hr)**: downstream evaluation campaign.
+
+### 3. The broker and data loader exist to maximize iteration speed
+
+Every hour saved on data wrangling is an hour available for one more informative
+experiment. The minimal Zarr v3 data loader (`$RESEARCH_DIR/src/data/zarr_loader.py`)
+reads directly from Lustre without a running server. Key capability: subsetting by
+experiment, random access across stores, trivial to add `data_fraction` support
+for scaling studies.
+
+### 4. Domain supervision already exists in the data — use it
+
+The mfxl* experiments contain **PeakNet pixel-level Bragg peak annotations** (binary
+labels, 0/1). This is rare — most SSL research has no ground truth for "what matters
+in the image." We can use these annotations to:
+
+- **Evaluate**: does the learned representation capture peak structure? (mask peak
+  regions in the embedding, measure downstream impact)
+- **Design loss functions**: weight reconstruction error at annotated peak locations
+- **Inform masking**: preferentially mask patches that contain peaks
+- **Bridge SSL → downstream**: peak detection accuracy as an evaluation metric that
+  directly measures scientific utility
+
+### 5. The goal is a foundation model that generalizes across instruments
+
+The dataset spans multiple detectors (jungfrau_4m at 2203×2299, jungfrau_16m at
+4216×4432, epix10k_2m at 1692×1692), multiple beamlines (CXI, MFX), and multiple
+crystallography experiments. A model that only works on one detector geometry is not
+a foundation model. This implies:
+
+- Preprocessing must normalize across detector geometries
+- Evaluation should test cross-instrument transfer (train on CXI, probe on MFX)
+- Patch-based architectures (ViT) are natural since patches are detector-agnostic
+- The data loader must handle heterogeneous image sizes gracefully
+
+### Data Reference (Phase 0)
+
+| Experiment | Detector | Size | Frames | Mean | High sig | Notes |
+|---|---|---|---|---|---|---|
+| cxil1015922 | jungfrau_4m | 2203×2299 | 52,622 | 79.5 | 0.9% | Largest, strong rings |
+| cxi101235425 | jungfrau_4m | 2203×2299 | 14,829 | 24.9 | 1.7% | Good Phase 1 subset |
+| mfx101211025 | jungfrau_16m | 4216×4432 | 10,551 | 89.4 | 1.8% | Large detector |
+| cxil1005322 | jungfrau_4m | 2203×2299 | 7,154 | 1.4 | 1.2% | Low intensity |
+| mfxl1025422 | peaknet | 1920×1920 | ~7K | 132 | — | Has peak labels |
+| mfxl1027522 | peaknet | 1920×1920 | ~12K | — | — | Has peak labels |
+
+Total: ~85K frames, ~1.73 TB uncompressed.
+
+---
+
 ## Candidate 1: Codebook Design (VQ-VAE component)
 
 **Why BO struggles here:**
