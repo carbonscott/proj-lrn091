@@ -14,8 +14,8 @@ export UV_CACHE_DIR=/lustre/orion/lrn091/proj-shared/cwang31/.UV_CACHE
 export DATA_BROKER_DIR=/lustre/orion/lrn091/proj-shared/cwang31/deps/tiled-catalog-broker
 export LCLS_DATA_BROKER_DIR=/lustre/orion/lrn091/proj-shared/cwang31/deps/lcls-data-broker
 export DATA_BROKER_EXAMPLE_DIR=/lustre/orion/lrn091/proj-shared/cwang31/deps/MAIQMag-data-broker-examples
-export DEEPLEARNING_DOC_DIR=/lustre/orion/lrn091/proj-shared/cwang31/deeplearning-docs
-export AGENT_NOTES_DIR=/lustre/orion/lrn091/proj-shared/cwang31/proj-lrn091/docs/agents
+export DEEPLEARNING_DOCS_DIR=/lustre/orion/lrn091/proj-shared/cwang31/deeplearning-docs
+export AGENT_DOCS_DIR=/lustre/orion/lrn091/proj-shared/cwang31/proj-lrn091/docs/agents
 export RESEARCH_DIR=/lustre/orion/lrn091/proj-shared/cwang31/research-lrn091
 ```
 
