@@ -19,6 +19,8 @@ export AGENT_NOTES_DIR=/lustre/orion/lrn091/proj-shared/cwang31/proj-lrn091/docs
 export RESEARCH_DIR=/lustre/orion/lrn091/proj-shared/cwang31/research-lrn091
 ```
 
+### Python
+
 Use uv to run python programs. The UV_CACHE_DIR avoids repeated package downloads.
 
 ## HPC Resources
@@ -50,6 +52,15 @@ need `srun`. Do NOT launch parallel or threaded tasks from login nodes.
 
 - Original (MAIQMag): `/lustre/orion/lrn091/proj-shared/cwang31/deps/tiled-catalog-broker`
 - LCLS/SFX fork (with Zarr v3 support): `/lustre/orion/lrn091/proj-shared/cwang31/deps/lcls-data-broker`
+
+## Research
+
+- Research repo: `$RESEARCH_DIR` (`/lustre/orion/lrn091/proj-shared/cwang31/research-lrn091`)
+  - `phase0/data-exploration` — Zarr loader + exploratory analysis (85K frames, 4 experiments)
+  - `phase0/data-loading` — Manifest-based PyTorch Dataset + transforms
+- Broker catalog: `data/broker/catalog.db` (104K frames, 30 runs, 7 experiments)
+- Manifest guide: `$RESEARCH_DIR/docs/manifest-guide.md` — how to query catalog and export training manifests
+- Playbook: `docs/agents/README-PLAYBOOK.md` — entry point for MAXIE training documentation
 
 ## Agent Documentation
 
