@@ -53,6 +53,27 @@ need `srun`. Do NOT launch parallel or threaded tasks from login nodes.
 - Original (MAIQMag): `/lustre/orion/lrn091/proj-shared/cwang31/deps/tiled-catalog-broker`
 - LCLS/SFX fork (with Zarr v3 support): `/lustre/orion/lrn091/proj-shared/cwang31/deps/lcls-data-broker`
 
+**Launching the broker** (from this repo):
+
+```bash
+cd data/broker
+PYTHONPATH=../../broker uv run --with 'tiled[server]' \
+    tiled serve config ../../broker/config.yml --api-key secret
+```
+
+Server runs on `http://127.0.0.1:8007`. The CWD must be `data/broker/`
+(where `catalog.db` lives) because `config.yml` uses a relative SQLite path.
+
+**Access modes:**
+
+- **Mode A (Expert):** Query entity metadata for file paths, load data directly (fast, for ML pipelines)
+- **Mode B (Visualizer):** Browse `dataset → entity → artifact` as Tiled children via HTTP; arrays served chunked. Client example:
+  ```python
+  from tiled.client import from_uri
+  c = from_uri("http://127.0.0.1:8007", api_key="secret")
+  arr = c["mfx100903824_r0027"]["f_mfx100903824_r0027_000000"]["image"].read()
+  ```
+
 ## Research
 
 - Research repo: `$RESEARCH_DIR` (`/lustre/orion/lrn091/proj-shared/cwang31/research-lrn091`)
